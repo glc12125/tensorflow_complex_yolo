@@ -69,11 +69,20 @@ def predict(draw_gt_box='False'):
         classes, index = non_max_supression(classes, rois, prob_th, nms_iou_th)
         all_boxes = filter_bbox(classes, rois, index)
         for box in all_boxes:
+            print(box)
             class_idx = box[0]
             corner_box = get_corner_gtbox(box[1:5])
             angle = calculate_angle(box[6], box[5])
             class_prob = box[7]
-            draw_rotated_box(img, box[1], box[2], box[3], box[4],
+            if box[3] > img_w:
+                continue
+            else:
+                w = box[3]
+            if box[4] > img_h:
+                continue
+            else:
+                h = box[4]
+            draw_rotated_box(img, box[1], box[2], w, h,
                              angle, color[class_idx])
             cv2.putText(img,
                         class_list[class_idx] + ' : {:.2f}'.format(class_prob),

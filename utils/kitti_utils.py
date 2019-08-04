@@ -2,6 +2,7 @@
 from __future__ import division
 import numpy as np
 import cv2
+import math
 
 # classes
 class_list = [
@@ -91,13 +92,18 @@ def draw_rotated_box(img, cy, cx, w, h, angle, color):
     param: angle(float): rz
     param: color(tuple, list): the color of box, (R, G, B)
     """
+    print("cy: {0}, cx: {1}, w: {2}, h: {3}, angle: {4}, color: {5}".format(cy, cx, w, h, angle, color))
     left = int(cy - w / 2)
     top = int(cx - h / 2)
     right = int(cx + h / 2)
     bottom = int(cy + h / 2)
-    ro = np.sqrt(pow(left - cy, 2) + pow(top - cx, 2))
-    a1 = np.arctan((w / 2) / (h / 2))
-    a2 = -np.arctan((w / 2) / (h / 2))
+    ro = math.sqrt(pow(left - cy, 2) + pow(top - cx, 2))
+    if h == 0:
+        a1 = np.arctan(np.inf)
+        a2 = -np.arctan(np.inf)
+    else:
+        a1 = np.arctan((w / 2) / (h / 2))
+        a2 = -np.arctan((w / 2) / (h / 2))
     a3 = -np.pi + a1
     a4 = np.pi - a1
     rotated_p1_y = cy + int(ro * np.sin(angle + a1))
