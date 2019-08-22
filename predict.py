@@ -25,12 +25,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--draw_gt_box", type=str,  default='True', help="Whether to draw_gtbox, True or False")
 parser.add_argument("--weights_path", type=str, default='./weights/yolo_tloss_1.185166835784912_vloss_2.9397876932621-220800',
                     help="set the weights_path")
+parser.add_argument("--save_path", type=str, default='./save_path',
+                    help="set the path to save the predictions")
 args = parser.parse_args()
 weights_path = args.weights_path
-
+save_path = args.save_path
 # dataset
 dataset = PointCloudDataset(root='./kitti/', data_set='test')
-make_dir('./predict_result')
+make_dir(save_path)
 
 
 def predict(draw_gt_box='False'):
@@ -45,7 +47,7 @@ def predict(draw_gt_box='False'):
     train_flag = graph.get_tensor_by_name("flag_placeholder:0")
     y = graph.get_tensor_by_name("net/y:0")
     for img_idx, rgb_map, target in dataset.getitem():
-        print("process data: {}, saved in ./predict_result/".format(img_idx))
+        print("process data: {}, saved in {}/".format(img_idx, save_path))
         img = np.array(rgb_map * 255, np.uint8)
         target = np.array(target)
         # draw gt bbox
@@ -88,7 +90,7 @@ def predict(draw_gt_box='False'):
                         class_list[class_idx] + ' : {:.2f}'.format(class_prob),
                         (corner_box[0], corner_box[1]), cv2.FONT_HERSHEY_PLAIN,
                         0.7, color[class_idx], 1, cv2.LINE_AA)
-        cv2.imwrite('./predict_result/{}.png'.format(img_idx), img)
+        cv2.imwrite('{}/{}.png'.format(save_path, img_idx), img)
 
 
 if __name__ == '__main__':

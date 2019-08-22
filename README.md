@@ -6,9 +6,45 @@
 
 ### Overview
 
-The project is an unofficial implementation of complex-yolo, and the model structure is slightly inconsistent with what the paper describes.  [Complex-YOLO: Real-time 3D Object Detection on Point Clouds](https://arxiv.org/abs/1803.06199).  &nbsp; [AI-liu/Complex-YOLO](https://github.com/AI-liu/Complex-YOLO) has the most stars, but there seem to be some bugs. The model has no yaw angle prediction, and on the test set,  the model has no generalization ability, so this project only refers to the point cloud preprocessing part ,  model structure reference&nbsp; [WojciechMormul/yolo2](https://github.com/WojciechMormul/yolo2).&nbsp;On this basis, a complete complex-yolo algorithm is implemented. Because of the high precision of this model, it can be easily converged, and there is no need to adjust too many parameters carefully. 
+The project is an unofficial implementation of complex-yolo, and the model structure is slightly inconsistent with what the paper describes.  [Complex-YOLO: Real-time 3D Object Detection on Point Clouds](https://arxiv.org/abs/1803.06199).  &nbsp; [AI-liu/Complex-YOLO](https://github.com/AI-liu/Complex-YOLO) has the most stars, but there seem to be some bugs. The model has no yaw angle prediction, and on the test set,  the model has no generalization ability, so this project only refers to the point cloud preprocessing part ,  model structure reference&nbsp; [WojciechMormul/yolo2](https://github.com/WojciechMormul/yolo2).&nbsp;On this basis, a complete complex-yolo algorithm is implemented. As the paper mentioned, RGB channels of the input birds eye view will be preprocessed into intensity, densioty, and height. Because of the high precision of this model, it can be easily converged, and there is no need to adjust too many parameters carefully. 
 
 Complex-yolo takes point cloud data as input and encodes point cloud into RGB-map of bird 's-eye view to predict the position and yaw angle of objiects in 3d space.  In order to improve the efficiency of  training model, the point cloud data set is firstly made into RGB dataset.  The experiment is based on the kitti dataset. The kitti dataset has a total of 7481 labeled data. The dataset is divided into two parts, the first 1000 samples are used as test sets,  and the remaining samples are used as training sets.
+
+### Simplified Network architecture
+
+|   |   |   |   |   |   |   |
+|---|---|---|---|---|---|---|
+| layer # |layer|filters|size|input|   |output|
+| 0 |conv| 24 |3 x 3 / 1|1024 x 512 x 3 | -> |1024 x 512 x 24|
+| 1 |max |    |2 x 2 / 2|1024 x 512 x 24| -> | 512 x 256 x 24|
+| 2 |conv| 48 |3 x 3 / 1| 512 x 256 x 24| -> | 512 x 256 x 48|
+| 3 |max |    |2 x 2 / 2| 512 x 256 x 48| -> | 256 x 128 x 48|
+| 4 |conv| 64 |3 x 3 / 1| 256 x 128 x 48| -> | 256 x 128 x 64|
+| 5 |conv| 32 |1 x 1 / 1| 256 x 128 x 64| -> | 256 x 128 x 32|
+| 6 |conv| 64 |3 x 3 / 1| 256 x 128 x 32| -> | 256 x 128 x 64|
+| 7 |max |    |2 x 2 / 2| 256 x 128 x 64| -> | 128 x  64 x 64|
+| 8 |conv| 128|3 x 3 / 1| 128 x  64 x 64| -> | 128 x  64 x128|
+| 9 |conv| 64 |3 x 3 / 1| 128 x 64 x 128| -> | 128 x  64 x 64|
+|10 |conv| 128|3 x 3 / 1| 128 x  64 x 64| -> | 128 x  64 x128|
+|11 |max |    |2 x 2 / 2| 128 x  64 x128| -> |  64 x  32 x128|
+|12 |conv| 512|3 x 3 / 1|  64 x  32 x128| -> |  64 x  32 x512|
+|13 |conv| 256|1 x 1 / 1|  64 x  32 x512| -> |  64 x  32 x256|
+|14 |conv| 512|3 x 3 / 1|  64 x  32 x256| -> |  64 x  32 x512|
+|15 |max |    |2 x 2 / 2|  64 x  32 x512| -> |  32 x  16 x512|
+|16 |conv|1024|3 x 3 / 1|  32 x  16 x512| -> |  32 x 16 x1024|
+|17 |conv| 512|1 x 1 / 1|  32 x 16 x1024| -> |  32 x  16 x512|
+|18 |conv|1024|3 x 3 / 1|  32 x  16 x512| -> |  32 x 16 x1024|
+|19 |route 14||         |               |    |               |
+|20 |conv|  64|3 x 3 / 1|  64 x  32 x512| -> |  64 x  32 x 64|
+|21 |reorg|   |      / 2|  64 x  32 x 64| -> |  32 x  16 x256|
+|22 |route 21 18|       |               |    |               |
+|23 |conv|1024|3 x 3 / 1|  32 x 16 x1280| -> |  32 x 16 x1024|
+|24 |conv|  75|1 x 1 / 1|  32 x 16 x1024| -> |  32 x  16 x 75|
+|25 |detection||        |               |    |               |
+
+### Weights and training data
+
+[Birds eye view from robok point cloud and weights](https://drive.google.com/open?id=1PvIFZ72CMKPUHNUd7zCHO9D_whQKH3OV)
 
 ### Examples
 

@@ -1,1 +1,4 @@
 .idea
+predict_result_robok/*.png
+predict_result/*.png
+**.pyc

@@ -26,7 +26,7 @@ class PointCloudDataset(object):
                  data_set='train'):
         self.root = root
         self.data_path = os.path.join(root, 'training')
-        self.lidar_path = os.path.join(self.data_path, "velodyne")
+        self.lidar_path = os.path.join(self.data_path, "predicted_velodyne")
         self.calib_path = os.path.join(self.data_path, "calib")
         self.label_path = os.path.join(self.data_path, "label_2")
         self.index_list = [str(i) for i in range(1000)] if data_set == "test" \
@@ -46,6 +46,7 @@ class PointCloudDataset(object):
             # load point cloud data
             point_cloud = np.fromfile(lidar_file,
                                       dtype=np.float32).reshape(-1, 4)
+            #print(point_cloud)
             b = remove_points(point_cloud, boundary)
             rgb_map = make_bv_feature(b)  # (768, 1024, 3)
 
@@ -63,14 +64,15 @@ class ImageDataSet(object):
                  flip=True,
                  random_scale=True,
                  aug_hsv=False,
-                 load_to_memory=False):
+                 load_to_memory=False,
+                 datapath='kitti/image_dataset/'):
         self.mode = mode
         self.flip = flip
         self.aug_hsv = aug_hsv
         self.random_scale = random_scale
         self.anchors_path = 'config/kitti_anchors.txt'
-        self.labels_dir = 'kitti/image_dataset/labels/'
-        self.images_dir = 'kitti/image_dataset/images/'
+        self.labels_dir = datapath + 'labels/'
+        self.images_dir = datapath + 'images/'
         self.all_image_index = 'config/' + data_set + '_image_list.txt'
         self.load_to_memory = load_to_memory
         self.anchors = read_anchors_from_file(self.anchors_path)

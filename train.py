@@ -16,6 +16,7 @@ parser.add_argument("--save_dir", type=str, default="./weights/", help="Dir to s
 parser.add_argument("--gpu_id", type=str, default='0', help="Specify GPU device")
 parser.add_argument("--num_iter", type=int, default=16000, help="num_max_iter")
 parser.add_argument("--save_interval", type=int, default=2, help="Save once every two epochs")
+parser.add_argument("--data_path", type=str, default="kitti/image_dataset/", help="training data path")
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
@@ -25,16 +26,19 @@ N_CLASSES = 8
 N_ANCHORS = 5
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH = GRID_H * SCALE, GRID_W * SCALE, 3
 batch_size = args.batch_size
+data_path = args.data_path
 
 train_dataset = ImageDataSet(data_set='train',
                              mode='train',
-                             load_to_memory=False)
+                             load_to_memory=False,
+                             datapath=data_path)
 test_dataset = ImageDataSet(data_set='test',
                             mode='test',
                             flip=False,
                             aug_hsv=False,
                             random_scale=False,
-                            load_to_memory=False)
+                            load_to_memory=False,
+                            datapath=data_path)
 num_val_step = int(test_dataset.num_samples / args.batch_size)
 save_steps = int(train_dataset.num_samples / args.batch_size * args.save_interval)
 
