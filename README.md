@@ -12,6 +12,7 @@ Complex-yolo takes point cloud data as input and encodes point cloud into RGB-ma
 
 ### Simplified Network architecture
 
+|   |   |   |   |   |   |   |
 |---|---|---|---|---|---|---|
 | layer # |layer|filters|size|input|   |output|
 | 0 |conv| 24 |3 x 3 / 1|1024 x 512 x 3 | -> |1024 x 512 x 24|
