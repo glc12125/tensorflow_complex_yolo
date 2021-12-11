@@ -42,7 +42,8 @@ def conv_layer(x, kernel, depth, train_logical, name):
                                           epsilon=0.001,
                                           center=True,
                                           scale=True)
-        x = leak_relu(x, 0.2)
+        #x = leak_relu(x, 0.2)
+        x = tf.nn.leaky_relu(x)
     # x = tf.nn.relu(x)
     return x
 

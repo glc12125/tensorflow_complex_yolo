@@ -28,6 +28,8 @@ IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH = GRID_H * SCALE, GRID_W * SCALE, 3
 batch_size = args.batch_size
 data_path = args.data_path
 
+print("data_path: {}".format(data_path))
+
 train_dataset = ImageDataSet(data_set='train',
                              mode='train',
                              load_to_memory=False,
@@ -134,7 +136,7 @@ def train(load_weights='False'):
                 saver.save(sess,
                            os.path.join(
                                args.save_dir,
-                               'Complex_YOLO_train_loss_{:.2f}_val_loss_{:.2f}'.format(
+                               'Complex_YOLO_robok_train_loss_{:.2f}_val_loss_{:.2f}'.format(
                                    train_loss, val_loss)),
                            global_step=global_step)
                 max_val_loss = val_loss
@@ -142,7 +144,7 @@ def train(load_weights='False'):
             saver.save(sess,
                        os.path.join(
                            args.save_dir,
-                           'Complex_YOLO_final_train_loss_{:.2f}'.format(
+                           'Complex_YOLO_robok_final_train_loss_{:.2f}'.format(
                                train_loss)),
                        global_step=global_step)
             print("training done!")
