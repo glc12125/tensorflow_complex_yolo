@@ -7,12 +7,12 @@ import sys
 sys.path.append('.')
 from dataset.dataset import PointCloudDataset
 from utils.model_utils import make_dir
-image_dataset_dir = 'kitti/robok_image_dataset/'
+image_dataset_dir = 'kitti/2channel416_sgm_image_dataset/'
 class_list = [
     'Car', 'Van', 'Truck', 'Pedestrian',
     'Person_sitting', 'Cyclist', 'Tram', 'Misc'
 ]
-img_h, img_w = 768, 1024
+img_h, img_w = 416, 416
 # dataset
 train_dataset = PointCloudDataset(root='kitti/', data_set='train')
 test_dataset = PointCloudDataset(root='kitti/', data_set='test')
@@ -41,7 +41,7 @@ def preprocess_dataset(dataset):
         for i in range(target.shape[0]):
             if target[i].sum() == 0:
                 break
-            with open("kitti/robok_image_dataset/labels/{}.txt".format(img_idx), 'a+') as f:
+            with open("kitti/2channel416_sgm_image_dataset/labels/{}.txt".format(img_idx), 'a+') as f:
                 label = class_list[int(target[i][0])]
                 cx = target[i][1] * img_w
                 cy = target[i][2] * img_h
@@ -50,7 +50,9 @@ def preprocess_dataset(dataset):
                 rz = target[i][5]
                 line = label + ' ' + '{} {} {} {} {}\n'.format(cx, cy, w, h, rz)
                 f.write(line)
-        cv2.imwrite('kitti/robok_image_dataset/images/{}.png'.format(img_idx), rgb_map[:, :, ::-1])
+        r_channel_place_holder = np.zeros((img_h, img_w))
+        rgb_map = np.dstack((rgb_map, r_channel_place_holder))
+        cv2.imwrite('kitti/2channel416_sgm_image_dataset/images/{}.png'.format(img_idx), rgb_map[:, :, ::-1])
     print('make image dataset done！')
 
 

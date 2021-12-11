@@ -1,1 +1,1 @@
-python predict.py  --weights_path=./weights/Complex_YOLO_train_loss_8.58_val_loss_7.46-178976  --draw_gt_box=True --save_path=predict_result_robok
+python predict.py  --weights_path=./weights/sgm_2channel416_train_loss_4.08_val_loss_4.49-224081  --draw_gt_box=True --save_path=2channel416_predict_result_sgm

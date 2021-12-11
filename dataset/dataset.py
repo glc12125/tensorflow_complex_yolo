@@ -7,9 +7,10 @@ from utils.kitti_utils import read_anchors_from_file, read_label_from_txt, \
     load_kitti_calib, get_target, remove_points, make_bv_feature
 from dataset.augument import RandomScaleAugmentation
 from model.model import encode_label
-img_h, img_w = 768, 1024
-grid_h, grid_w = 24, 32
+img_h, img_w = 416, 416
+grid_h, grid_w = 13, 13
 iou_th = 0.5
+'''
 boundary = {
     'minX': 0,
     'maxX': 80,
@@ -17,8 +18,19 @@ boundary = {
     'maxY': 40,
     'minZ': -2,
     'maxZ': 1.25
+}'''
+boundary = {
+    "minX": 0,
+    "maxX": 50,
+    "minY": -25,
+    "maxY": 25,
+    "minZ": -2.73,
+    "maxZ": 1.27
 }
 
+
+HEIGHT_DISCRETIZATION = (boundary["maxX"] - boundary["minX"])/img_h
+WIDTH_DISCRETIZATION = (boundary["maxY"] - boundary["minY"])/img_w
 
 class PointCloudDataset(object):
     def __init__(self,
@@ -26,7 +38,7 @@ class PointCloudDataset(object):
                  data_set='train'):
         self.root = root
         self.data_path = os.path.join(root, 'training')
-        self.lidar_path = os.path.join(self.data_path, "predicted_velodyne")
+        self.lidar_path = os.path.join(self.data_path, "sgm_predicted_velodyne")
         self.calib_path = os.path.join(self.data_path, "calib")
         self.label_path = os.path.join(self.data_path, "label_2")
         self.index_list = [str(i) for i in range(1000)] if data_set == "test" \
@@ -48,7 +60,8 @@ class PointCloudDataset(object):
                                       dtype=np.float32).reshape(-1, 4)
             #print(point_cloud)
             b = remove_points(point_cloud, boundary)
-            rgb_map = make_bv_feature(b)  # (768, 1024, 3)
+            print('removed: {:.2f}% points'.format(((point_cloud.shape[0]-b.shape[0])/point_cloud.shape[0])*100))
+            rgb_map = make_bv_feature(b)  # (768, 1024, 2)
 
             yield index, rgb_map, target
 
@@ -236,7 +249,7 @@ class ImageDataSet(object):
         i = 0
         for img_idx, img, label_encoded in self.data_generator():
             i += 1
-            img_batch.append(img)
+            img_batch.append(img[:,:,:-1])
             label_batch.append(label_encoded)
             if i % batch_size == 0:
                 yield np.array(img_batch), np.array(label_batch)

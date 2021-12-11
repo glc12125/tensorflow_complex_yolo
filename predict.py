@@ -14,8 +14,8 @@ nms_iou_th = 0.4
 n_anchors = 5
 n_classes = 8
 net_scale = 32
-img_h, img_w = 768, 1024
-grid_w, grid_h = 32, 24
+img_h, img_w = 416, 416
+grid_w, grid_h = 13, 13
 class_list = [
     'Car', 'Van', 'Truck', 'Pedestrian',
     'Person_sitting', 'Cyclist', 'Tram', 'Misc'
@@ -49,6 +49,8 @@ def predict(draw_gt_box='False'):
     for img_idx, rgb_map, target in dataset.getitem():
         print("process data: {}, saved in {}/".format(img_idx, save_path))
         img = np.array(rgb_map * 255, np.uint8)
+        r_channel_place_holder = np.zeros((img.shape[0], img.shape[1]))
+        fake_img = np.dstack((img, r_channel_place_holder))
         target = np.array(target)
         # draw gt bbox
         if draw_gt_box == 'True':
@@ -60,10 +62,10 @@ def predict(draw_gt_box='False'):
                 w = int(target[i][3] * img_w)
                 h = int(target[i][4] * img_h)
                 rz = target[i][5]
-                draw_rotated_box(img, cx, cy, w, h, rz, gt_box_color)
+                draw_rotated_box(fake_img, cx, cy, w, h, rz, gt_box_color)
                 label = class_list[int(target[i][0])]
                 box = get_corner_gtbox([cx, cy, w, h])
-                cv2.putText(img, label, (box[0], box[1]),
+                cv2.putText(fake_img, label, (box[0], box[1]),
                             cv2.FONT_HERSHEY_PLAIN, 1.0, gt_box_color, 1)
         data = sess.run(y, feed_dict={image: [rgb_map], train_flag: False})
         classes, rois = preprocess_data(data, anchors, important_classes,
@@ -84,13 +86,14 @@ def predict(draw_gt_box='False'):
                 continue
             else:
                 h = box[4]
-            draw_rotated_box(img, box[1], box[2], w, h,
+            draw_rotated_box(fake_img, box[1], box[2], w, h,
                              angle, color[class_idx])
-            cv2.putText(img,
+            cv2.putText(fake_img,
                         class_list[class_idx] + ' : {:.2f}'.format(class_prob),
                         (corner_box[0], corner_box[1]), cv2.FONT_HERSHEY_PLAIN,
                         0.7, color[class_idx], 1, cv2.LINE_AA)
-        cv2.imwrite('{}/{}.png'.format(save_path, img_idx), img)
+
+        cv2.imwrite('{}/{}.png'.format(save_path, img_idx), fake_img)
 
 
 if __name__ == '__main__':

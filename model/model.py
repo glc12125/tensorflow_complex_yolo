@@ -1,10 +1,10 @@
 import tensorflow as tf
 import numpy as np
 SCALE = 32
-GRID_W, GRID_H = 32, 24
+GRID_W, GRID_H = 13, 13
 N_CLASSES = 8
 N_ANCHORS = 5
-IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH = GRID_H * SCALE, GRID_W * SCALE, 3
+IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH = GRID_H * SCALE, GRID_W * SCALE, 2
 class_dict = {
     'Car': 0,
     'Van': 1,
@@ -156,7 +156,7 @@ def encode_label(labels, anchors, img_w, img_h, grid_w, grid_h, iou_th):
     param anchors (array): anchors
     return: encoded label 
     """
-    anchors_on_image = np.array([img_w, img_h]) * anchors / np.array([80, 60])
+    anchors_on_image = np.array([img_w, img_h]) * anchors / np.array([50, 50])
     n_anchors = np.shape(anchors_on_image)[0]
     label_encoded = np.zeros([grid_h, grid_w, n_anchors, (6 + 1 + 1)],
                              dtype=np.float32)

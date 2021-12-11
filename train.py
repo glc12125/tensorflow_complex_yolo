@@ -21,10 +21,10 @@ args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
 SCALE = 32
-GRID_W, GRID_H = 32, 24
+GRID_W, GRID_H = 13, 13
 N_CLASSES = 8
 N_ANCHORS = 5
-IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH = GRID_H * SCALE, GRID_W * SCALE, 3
+IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH = GRID_H * SCALE, GRID_W * SCALE, 2
 batch_size = args.batch_size
 data_path = args.data_path
 
@@ -134,7 +134,7 @@ def train(load_weights='False'):
                 saver.save(sess,
                            os.path.join(
                                args.save_dir,
-                               'Complex_YOLO_train_loss_{:.2f}_val_loss_{:.2f}'.format(
+                               'sgm_2channel416_train_loss_{:.2f}_val_loss_{:.2f}'.format(
                                    train_loss, val_loss)),
                            global_step=global_step)
                 max_val_loss = val_loss
@@ -142,7 +142,7 @@ def train(load_weights='False'):
             saver.save(sess,
                        os.path.join(
                            args.save_dir,
-                           'Complex_YOLO_final_train_loss_{:.2f}'.format(
+                           'sgm_2channel416_final_train_loss_{:.2f}'.format(
                                train_loss)),
                        global_step=global_step)
             print("training done!")

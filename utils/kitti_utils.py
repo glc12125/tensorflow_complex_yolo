@@ -161,36 +161,41 @@ def remove_points(point_cloud, boundary_condition):
                     & (point_cloud[:, 1] >= min_y) & (point_cloud[:, 1] <= max_y)
                     & (point_cloud[:, 2] >= min_z) & (point_cloud[:, 2] <= max_z))
     point_cloud = point_cloud[mask]
-    point_cloud[:, 2] = point_cloud[:, 2] + 2
+    point_cloud[:, 2] = point_cloud[:, 2] - min_z
     return point_cloud
 
+IMG_HEIGHT = 416
+IMG_WIDTH = 416
 
 def make_bv_feature(point_cloud_):
     """
     param point_cloud_ (array): Point cloud data within the area of interest
     return (array): RGB map
     """
-    # 1024 x 1024 x 3
-    Height = 1024 + 1
-    Width = 1024 + 1
+    # 416 x 416 x 2
+    Height = IMG_HEIGHT + 1
+    Width = IMG_WIDTH + 1
+    half_width = IMG_WIDTH / 2.0
     # Discretize Feature Map
     point_cloud = np.copy(point_cloud_)
-    point_cloud[:, 0] = np.int_(np.floor(point_cloud[:, 0] / 60.0 * 768))
+    point_cloud[:, 0] = np.int_(np.floor(point_cloud[:, 0] / 50.0 * IMG_HEIGHT))
     point_cloud[:, 1] = np.int_(
-        np.floor(point_cloud[:, 1] / 40.0 * 512) + Width / 2)
+        np.floor(point_cloud[:, 1] / 50.0 * IMG_WIDTH) + half_width)
     # sort-3times
     indices = np.lexsort(
         (-point_cloud[:, 2], point_cloud[:, 1], point_cloud[:, 0]))
+
     point_cloud = point_cloud[indices]
     # Height Map
     height_map = np.zeros((Height, Width))
     _, indices = np.unique(point_cloud[:, 0:2], axis=0, return_index=True)
     point_cloud_frac = point_cloud[indices]
     # some important problem is image coordinate is (y,x), not (x,y)
+
     height_map[np.int_(point_cloud_frac[:, 0]),
                np.int_(point_cloud_frac[:, 1])] = point_cloud_frac[:, 2]
     # Intensity Map & DensityMap
-    intensity_map = np.zeros((Height, Width))
+    #intensity_map = np.zeros((Height, Width))
     density_map = np.zeros((Height, Width))
     _, indices, counts = np.unique(point_cloud[:, 0:2],
                                    axis=0,
@@ -198,20 +203,54 @@ def make_bv_feature(point_cloud_):
                                    return_counts=True)
     point_cloud_top = point_cloud[indices]
     normalized_counts = np.minimum(1.0, np.log(counts + 1) / np.log(64))
-    intensity_map[np.int_(point_cloud_top[:, 0]),
-                  np.int_(point_cloud_top[:, 1])] = point_cloud_top[:, 3]
+    #intensity_map[np.int_(point_cloud_top[:, 0]),
+    #              np.int_(point_cloud_top[:, 1])] = point_cloud_top[:, 3]
     density_map[np.int_(point_cloud_top[:, 0]),
                 np.int_(point_cloud_top[:, 1])] = normalized_counts
 
-    rgb_map = np.zeros((Height, Width, 3))
-    rgb_map[:, :, 0] = density_map  # r_map
-    rgb_map[:, :, 1] = height_map / 3.26  # g_map
-    rgb_map[:, :, 2] = intensity_map  # b_map
+    rgb_map = np.zeros((IMG_HEIGHT, IMG_WIDTH, 2))
+    rgb_map[:, :, 0] = density_map[:IMG_HEIGHT, :IMG_WIDTH]  # r_map
+    rgb_map[:, :, 1] = height_map[:IMG_HEIGHT, :IMG_WIDTH] / 3.26  # g_map
+    #rgb_map[:, :, 2] = intensity_map  # b_map
 
-    save = np.zeros((768, 1024, 3))
-    save = rgb_map[0:768, 0:1024, :]
-    return save
+    return rgb_map
 
+'''
+def get_target(label_file, transform):
+    """
+
+    param label_file  (str): The kitti label path
+    param transform (array): Coordinate transformation matrix
+    return (array): label
+    """
+    target = np.zeros([50, 6], dtype=np.float32)
+    with open(label_file, 'r') as f:
+        lines = f.readlines()
+    num_obj = len(lines)
+    index = 0
+    for j in range(num_obj):
+        obj = lines[j].strip().split(' ')
+        obj_class = obj[0].strip()
+        if obj_class in class_list:
+            t_lidar, box3d_corner, rz = box3d_cam_to_velo(
+                obj[8:], transform)  # get target  3D object location x,y
+            location_x = t_lidar[0][0]
+            location_y = t_lidar[0][1]
+            if (location_x > 0) & (location_x < 50) & (location_y > -25) & (
+                    location_y < 25):
+                target[index][2] = t_lidar[0][0] / 60.0  # make sure target inside the covering area (0,1)
+                target[index][1] = (t_lidar[0][1] + 40) / 80.0  # we should put this in [0,1], so divide max_size  80 m
+                obj_width = obj[9].strip()
+                obj_length = obj[10].strip()
+                target[index][3] = float(obj_width) / 80.0
+                target[index][4] = float(obj_length) / 60.0  # get target width ,length
+                target[index][5] = rz
+                for i in range(len(class_list)):
+                    if obj_class == class_list[i]:  # get target class
+                        target[index][0] = i
+                index = index + 1
+    return target
+'''
 
 def get_target(label_file, transform):
     """
@@ -233,14 +272,14 @@ def get_target(label_file, transform):
                 obj[8:], transform)  # get target  3D object location x,y
             location_x = t_lidar[0][0]
             location_y = t_lidar[0][1]
-            if (location_x > 0) & (location_x < 60) & (location_y > -40) & (
-                    location_y < 40):
-                target[index][2] = t_lidar[0][0] / 60.0  # make sure target inside the covering area (0,1)
-                target[index][1] = (t_lidar[0][1] + 40) / 80.0  # we should put this in [0,1], so divide max_size  80 m
+            if (location_x > 0) & (location_x < 50) & (location_y > -25) & (
+                    location_y < 25):
+                target[index][2] = t_lidar[0][0] / 50.0  # make sure target inside the covering area (0,1)
+                target[index][1] = (t_lidar[0][1] + 25) / 50.0  # we should put this in [0,1], so divide max_size  50 m
                 obj_width = obj[9].strip()
                 obj_length = obj[10].strip()
-                target[index][3] = float(obj_width) / 80.0
-                target[index][4] = float(obj_length) / 60.0  # get target width ,length
+                target[index][3] = float(obj_width) / 50.0
+                target[index][4] = float(obj_length) / 50.0  # get target width ,length
                 target[index][5] = rz
                 for i in range(len(class_list)):
                     if obj_class == class_list[i]:  # get target class
@@ -336,8 +375,9 @@ def coord_image_to_velo(hy, wx):
     """
     Convert image coordinates to velodyne coordinates
     """
-    velo_x = hy * 60 / 768.0
-    velo_y = (wx - 512) * 40 / 512.0
+    velo_x = hy * 50 / IMG_HEIGHT
+    half_width = IMG_WIDTH / 2.0
+    velo_y = (wx - half_width) * 50 / half_width
     return velo_x, velo_y
 
 
