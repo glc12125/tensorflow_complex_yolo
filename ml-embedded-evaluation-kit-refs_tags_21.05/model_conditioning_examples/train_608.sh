@@ -1,0 +1,2 @@
+#python yolo_post_training_quantization.py --batch_size 8 --num_iter 148000 --gpu_id 0,1 --data_path kitti/robok_image_dataset/ --save_dir robok_weights --save_interval 1
+python yolo_post_training_quantization_608.py --batch_size 8 --num_iter 148000 --gpu_id 0,1 --data_path kitti/robok_image_dataset_608/ --save_dir robok_weights --save_interval 1
