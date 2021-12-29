@@ -1,0 +1,1 @@
+python predict_tflite_608.py  --weights_path=yolo_post_training_quant_model_with_leaky_8.45.tflite  --draw_gt_box=True --save_path=predict_result_robok_tflite

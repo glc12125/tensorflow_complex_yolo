@@ -77,7 +77,8 @@ def max_pool_layer(size, stride, name):
 
 def conv_layer(kernel, depth, train_logical, name):
     #return [tf.keras.layers.Conv2D(depth, kernel, padding='SAME', kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"), activation=tf.nn.relu6),tf.keras.layers.BatchNormalization(momentum=0.9, epsilon=0.001, center=True, scale=True)]
-    return [tf.keras.layers.Conv2D(depth, kernel, padding='SAME', kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"), activation=tf.nn.leaky_relu),tf.keras.layers.BatchNormalization(momentum=0.9, epsilon=0.001, center=True, scale=True)]
+    #return [tf.keras.layers.Conv2D(depth, kernel, padding='SAME', kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"), activation=tf.nn.leaky_relu),tf.keras.layers.BatchNormalization(momentum=0.9, epsilon=0.001, center=True, scale=True)]
+    return [tf.keras.layers.Conv2D(depth, kernel, padding='SAME', kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform")),tf.keras.layers.BatchNormalization(momentum=0.9, epsilon=0.001, center=True, scale=True), tf.keras.layers.LeakyReLU(alpha=0.2)]
 
 def slice_tensor(x, start, end=None):
     """
@@ -107,20 +108,49 @@ def conv_layer_functional(x, kernel, depth, train_logical, name):
         depth,
         kernel,
         padding='SAME',
-        kernel_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"),
-        activation=tf.nn.relu6)(x)
+        activation=tf.nn.leaky_relu)(x)
     x = tf.keras.layers.BatchNormalization(
                                       momentum=0.9,
                                       epsilon=0.001,
                                       center=True,
-                                      scale=True)(x, training=train_logical)
+                                      scale=True)(x)
     return x
 
 
+class SpaceToDepth(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(SpaceToDepth, self).__init__(**kwargs)
+
+    def call(self, x, block_size):
+        return tf.nn.space_to_depth(x, block_size)
+
+def space_to_depth_x2(x):
+    """Thin wrapper for Tensorflow space_to_depth with block_size=2."""
+    # Import currently required to make Lambda work.
+    # See: https://github.com/fchollet/keras/issues/5088#issuecomment-273851273
+    return tf.nn.space_to_depth(x, block_size=2)
+
+
+def space_to_depth_x2_output_shape(input_shape):
+    """Determine space_to_depth output shape for block_size=2.
+
+    Note: For Lambda with TensorFlow backend, output shape may not be needed.
+    """
+    return (input_shape[0], input_shape[1] // 2, input_shape[2] // 2, 4 *
+            input_shape[3]) if input_shape[1] else (input_shape[0], None, None,
+                                                    4 * input_shape[3])
+
 def passthrough_layer_functional(a, b, kernel, depth, size, train_logical, name):
     b = conv_layer_functional(b, kernel, depth, train_logical, name)
-    b = tf.nn.space_to_depth(input=b, block_size=size)
-    y = tf.concat([a, b], axis=3)
+    #space_to_depth = SpaceToDepth()
+    #b = space_to_depth(b, block_size=size)
+    #b = tf.keras.layers.Lambda(
+    #    space_to_depth_x2,
+    #    output_shape=space_to_depth_x2_output_shape,
+    #    name='space_to_depth')(b)
+    #y = tf.concat([a, b], axis=3)
+    b = tf.nn.space_to_depth(b, block_size=2)
+    y = tf.keras.layers.Concatenate(axis=3)([a, b])
     return y
 
 def create_model_with_pass_through(train_logical=True):

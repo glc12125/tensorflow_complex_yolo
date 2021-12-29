@@ -45,6 +45,44 @@ save_path = args.save_path
 dataset = PointCloudDataset(root='./kitti/', data_set='test')
 make_dir(save_path)
 
+def evaluate_tflite_model(tflite_save_path, x_test, batch_size=8):
+    """Calculate the accuracy of a TensorFlow Lite model using TensorFlow Lite interpreter.
+
+    Args:
+        tflite_save_path: Path to TensorFlow Lite model to test.
+        x_test: numpy array of testing data.
+    """
+
+    interpreter = tf.lite.Interpreter(model_path=str(tflite_save_path))
+
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    accuracy_count = 0
+    num_test_images = len(y_test)
+    loss = 0
+    yolo_loss = YoloLoss(batch_size=batch_size)
+    for i in range(num_test_images):
+        output_batch = []
+        label_batch = []
+        for j in range(batch_size):
+            label_batch.append(y_test[i])
+            interpreter.set_tensor(input_details[0]['index'], x_test[i][np.newaxis, ...])
+            interpreter.invoke()
+            output_data = interpreter.get_tensor(output_details[0]['index'])
+            output_data = np.squeeze(output_data)
+            output_batch.append(output_data)
+        output_batch = tf.stack(output_batch)
+        label_batch = np.asarray(label_batch)
+        #output_data = np.squeeze(output_data)
+        print("loss({}): {}".format(i, loss))
+        print("type(label_batch): {}, type(output_batch): {}".format(type(label_batch), type(output_batch)))
+        print("shape(label_batch): {}, shape(output_batch): {}".format(label_batch.shape, tf.shape(output_batch)))
+        loss += yolo_loss(label_batch, output_batch)
+
+    print(f"Test loss quantized: {loss / num_test_images:.3f}")
+
 def visualize_in_image(predictions, img_path, bev_width, bev_height, bev_img, img_idx):
     img2d = cv2.imread(img_path)
     calib = kitti_utils.Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
@@ -57,7 +95,7 @@ def visualize_in_image(predictions, img_path, bev_width, bev_height, bev_img, im
     #img2d = cv2.copyMakeBorder(img2d, 0, bev_img.shape[0] - img2d.shape[0], 0, 0, cv2.BORDER_CONSTANT,value=[255,255,255])
     #numpy_vertical_concat = np.concatenate((bev_img, img2d), axis=1)
     #cv2.imshow("3d bounding boxes on image for pointcloud", img2d)
-    cv2.imwrite('{}/{}.png'.format("rendered_front_view", img_idx), img2d)
+    cv2.imwrite('{}/{}.png'.format("rendered_front_view_tflite", img_idx), img2d)
     cv2.waitKey(0)
 
     return detected_img
@@ -66,10 +104,12 @@ def predict(draw_gt_box='False'):
 
     important_classes, names, color = read_class_flag('config/class_flag.txt')
     anchors = read_anchors_from_file('config/kitti_anchors.txt')
-    new_model = tf.keras.models.load_model(weights_path, compile=False)
-    # Check its architecture
-    new_model.summary()
 
+    interpreter = tf.lite.Interpreter(model_path=str(weights_path))
+
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
 
     #sess = tf.compat.v1.Session()
     #saver = tf.train.import_meta_graph(weights_path + '.meta')
@@ -98,9 +138,14 @@ def predict(draw_gt_box='False'):
                 print("GT: {}".format(box))
                 cv2.putText(img, label, (box[0], box[1]),
                             cv2.FONT_HERSHEY_PLAIN, 1.0, gt_box_color, 1)
-        test_input = np.asarray([rgb_map])
-        data = new_model.predict(test_input.astype(np.float32))
-        pred = tf.reshape(data, shape=(-1, grid_h, grid_w, n_anchors, 7 + n_classes))
+        test_input = np.asarray(rgb_map)
+        #data = new_model.predict(test_input.astype(np.float32))
+        test_input = test_input.astype(np.float32)
+        interpreter.set_tensor(input_details[0]['index'], test_input[np.newaxis, ...])
+        interpreter.invoke()
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+        output_data = np.squeeze(output_data)
+        pred = tf.reshape(output_data, shape=(-1, grid_h, grid_w, n_anchors, 7 + n_classes))
         #data = sess.run(y, feed_dict={image: [rgb_map], train_flag: False})
         classes, rois = preprocess_data(pred, anchors, important_classes,
                                         grid_w, grid_h, net_scale)

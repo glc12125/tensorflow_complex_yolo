@@ -1,0 +1,1 @@
+python predict_608.py  --weights_path=./complex_yolov2_149-8.56/  --draw_gt_box=True --save_path=predict_result_robok

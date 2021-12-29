@@ -100,6 +100,7 @@ def evaluate_tflite_model(tflite_save_path, x_test, y_test, batch_size=8):
     accuracy_count = 0
     num_test_images = len(y_test)
     loss = 0
+    total_loss = 0
     yolo_loss = YoloLoss(batch_size=batch_size)
     for i in range(num_test_images):
         output_batch = []
@@ -114,12 +115,13 @@ def evaluate_tflite_model(tflite_save_path, x_test, y_test, batch_size=8):
         output_batch = tf.stack(output_batch)
         label_batch = np.asarray(label_batch)
         #output_data = np.squeeze(output_data)
-        print("loss({}): {}".format(i, loss))
         print("type(label_batch): {}, type(output_batch): {}".format(type(label_batch), type(output_batch)))
         print("shape(label_batch): {}, shape(output_batch): {}".format(label_batch.shape, tf.shape(output_batch)))
-        loss += yolo_loss(label_batch, output_batch)
+        loss = yolo_loss(label_batch, output_batch)
+        print("loss({}): {}".format(i, loss))
+        total_loss += loss
 
-    print(f"Test loss quantized: {loss / num_test_images:.3f}")
+    print(f"Test loss quantized: {total_loss / num_test_images:.3f}")
 
 class LearningRateLoggingCallback(tf.keras.callbacks.Callback):
 
@@ -167,6 +169,7 @@ def main():
                                 batch_size=batch_size)
 
     total_epoch = total_steps // train_dataset.__len__()
+    #total_epoch = 1
 
     model = create_model()
     #model = create_model_with_pass_through()
